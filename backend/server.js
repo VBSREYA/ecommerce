@@ -1,8 +1,15 @@
+require("dotenv").config();
 const cors = require("cors");
 const express = require("express");
 const app = express();
 
-app.use(cors());
+app.use(cors({
+  origin: [
+    "http://localhost:5173",
+    "https://ecommerce-one-gray-26.vercel.app/"
+  ],
+  credentials: true
+}));
 app.use(express.json());
 
 require("./db"); // ✅ DB connection
@@ -14,6 +21,8 @@ app.use("/api/products", productRoutes);
 
 const cartRoutes = require("./routes/cartRoutes");
 app.use("/api/cart", cartRoutes);
-app.listen(5000, () => {
-  console.log("Server running on port 5000");
+const PORT = process.env.PORT || 5000;
+
+app.listen(PORT, () => {
+  console.log("Server running on port", PORT);
 });

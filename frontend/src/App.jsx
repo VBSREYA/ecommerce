@@ -1,4 +1,5 @@
 import { auth } from "./firebase";
+import { API } from "./api";
 import React, { useState, useEffect, useMemo } from "react";
 import { 
   GoogleAuthProvider, 
@@ -74,7 +75,7 @@ export default function App() {
   const [products, setProducts] = useState([]);
 
 useEffect(() => {
-  fetch("http://localhost:5000/api/products")
+  fetch("https://ecommerce-backend-busm.onrender.com/api/products")
     .then(res => res.json())
     .then(data => {
       console.log("Products from DB:", data);
@@ -99,7 +100,7 @@ useEffect(() => {
 
     if (currentUser) {
       // 🔥 LOAD CART FROM DATABASE
-      const res = await fetch(`http://localhost:5000/api/cart/${currentUser.email}`);
+      const res = await fetch(`https://ecommerce-backend-busm.onrender.com/api/cart/${currentUser.email}`);
       const data = await res.json();
 
       // ⚠️ IMPORTANT: attach quantity + product info later
@@ -152,7 +153,7 @@ const handleSaveProduct = async (e) => {
   try {
     if (editingProduct) {
       // ✅ UPDATE PRODUCT
-      await fetch(`http://localhost:5000/api/products/update/${editingProduct.id}`, {
+      await fetch(`https://ecommerce-backend-busm.onrender.com/api/products/update/${editingProduct.id}`), {
         method: "PUT",
         headers: {
           "Content-Type": "application/json"
@@ -164,7 +165,7 @@ const handleSaveProduct = async (e) => {
 
     } else {
       // ✅ ADD PRODUCT
-      await fetch("http://localhost:5000/api/products/add", {
+   await fetch("https://ecommerce-backend-busm.onrender.com/api/products/add", {
         method: "POST",
         headers: {
           "Content-Type": "application/json"
@@ -176,7 +177,7 @@ const handleSaveProduct = async (e) => {
     }
 
     // 🔄 REFRESH PRODUCTS
-    const res = await fetch("http://localhost:5000/api/products");
+   const res = await fetch("https://ecommerce-backend-busm.onrender.com/api/products");
     const data = await res.json();
     setProducts(data);
 
@@ -193,7 +194,7 @@ const handleSaveProduct = async (e) => {
 
   try {
     // ✅ SAVE TO BACKEND
-    await fetch("http://localhost:5000/api/cart/add", {
+    await fetch("https://ecommerce-backend-busm.onrender.com/api/cart/add", {
       method: "POST",
       headers: {
         "Content-Type": "application/json"

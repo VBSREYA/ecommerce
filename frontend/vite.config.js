@@ -4,10 +4,18 @@ import path from "path";
 
 export default defineConfig({
   plugins: [react()],
+
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "./src"),
     },
-    dedupe: ["react", "react-dom"], // ✅ THIS FIXES YOUR ERROR
+
+    // helps avoid duplicate React instances
+    dedupe: ["react", "react-dom", "firebase"],
+  },
+
+  // 🔥 IMPORTANT: fixes firebase/auth resolution on Vercel (Rolldown/Vite 8 issue)
+  optimizeDeps: {
+    include: ["firebase/app", "firebase/auth"],
   },
 });

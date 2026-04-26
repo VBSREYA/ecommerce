@@ -4,12 +4,12 @@ const db = require("../db");
 
 // ➕ ADD PRODUCT
 router.post("/add", (req, res) => {
-  const { name, description, price, image } = req.body;
+  const { name, description, price, image, category, stock, discount } = req.body;
 
-  const sql =
-    "INSERT INTO products (name, description, price, image) VALUES (?, ?, ?, ?)";
+ const sql =
+  "INSERT INTO products (name, description, price, image, category, stock, discount) VALUES (?, ?, ?, ?, ?, ?, ?)";
 
-  db.query(sql, [name, description, price, image], (err, result) => {
+  db.query(sql, [name, description, price, image, category, stock, discount], (err, result) => {
     if (err) {
       console.log("DB ERROR:", err);
       return res.status(500).json({ message: "Error adding product" });
@@ -39,26 +39,31 @@ router.get("/", (req, res) => {
 // ✏️ UPDATE PRODUCT
 router.put("/update/:id", (req, res) => {
   const { id } = req.params;
-  const { name, description, price, image } = req.body;
+
+  const { name, description, price, image, category, stock, discount } = req.body;
 
   const sql = `
     UPDATE products 
-    SET name=?, description=?, price=?, image=? 
+    SET name=?, description=?, price=?, image=?, category=?, stock=?, discount=? 
     WHERE id=?
   `;
 
-  db.query(sql, [name, description, price, image, id], (err, result) => {
-    if (err) {
-      console.log("UPDATE ERROR:", err);
-      return res.status(500).json({ message: "Error updating product" });
-    }
+  db.query(
+    sql,
+    [name, description, price, image, category, stock, discount, id],
+    (err, result) => {
+      if (err) {
+        console.log("UPDATE ERROR:", err);
+        return res.status(500).json({ message: "Error updating product" });
+      }
 
-    if (result.affectedRows === 0) {
-      return res.status(404).json({ message: "Product not found" });
-    }
+      if (result.affectedRows === 0) {
+        return res.status(404).json({ message: "Product not found" });
+      }
 
-    res.json({ message: "Product updated successfully" });
-  });
+      res.json({ message: "Product updated successfully" });
+    }
+  );
 });
 
 module.exports = router;

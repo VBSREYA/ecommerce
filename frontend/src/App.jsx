@@ -147,11 +147,14 @@ const handleSaveProduct = async (e) => {
   const formData = new FormData(e.target);
 
   const productData = {
-    name: formData.get("name"),
-    description: formData.get("description"),
-    price: Number(formData.get("price")),
-    image: formData.get("image"),
-  };
+  name: formData.get("name"),
+  description: formData.get("description"),
+  price: Number(formData.get("price")),
+  image: formData.get("image"),
+  category: formData.get("category"),
+  stock: Number(formData.get("stock")),
+  discount: Number(formData.get("discount"))
+};
 
 try {
   if (editingProduct) {

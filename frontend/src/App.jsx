@@ -75,13 +75,16 @@ export default function App() {
   const [products, setProducts] = useState([]);
 
 useEffect(() => {
-  fetch("https://ecommerce-backend-busm.onrender.com/api/products")
-    .then(res => res.json())
-    .then(data => {
-      console.log("Products from DB:", data);
-      setProducts(data);
-    });
+  API.getProducts().then(data => {
+    const fixed = data.map(p => ({
+      ...p,
+      id: p.id || p._id // ✅ FIXED
+    }));
+
+    setProducts(fixed);
+  });
 }, []);
+  
   const [orders, setOrders] = useState([]);
   const [cart, setCart] = useState([]);
   const [wishlist, setWishlist] = useState([]);
@@ -150,36 +153,44 @@ const handleSaveProduct = async (e) => {
     image: formData.get("image"),
   };
 
-  try {
-    if (editingProduct) {
-      // ✅ UPDATE PRODUCT
-      await fetch(`https://ecommerce-backend-busm.onrender.com/api/products/update/${editingProduct.id}`), {
-        method: "PUT",
-        headers: {
-          "Content-Type": "application/json"
-        },
-        body: JSON.stringify(productData)
-      });
+try {
+  if (editingProduct) {
+    // ✅ UPDATE PRODUCT
+    await fetch(`https://ecommerce-backend-busm.onrender.com/api/products/update/${editingProduct.id}`, {
+      method: "PUT",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify(productData)
+    });
 
-      showToast("Product Updated ✅");
+    showToast("Product Updated ✅");
 
     } else {
       // ✅ ADD PRODUCT
-   await fetch("https://ecommerce-backend-busm.onrender.com/api/products/add", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json"
-        },
-        body: JSON.stringify(productData)
-      });
+await fetch("https://ecommerce-backend-busm.onrender.com/api/products/add", {
+  method: "POST",
+  headers: {
+    "Content-Type": "application/json"
+  },
+  body: JSON.stringify(productData)
+});
 
       showToast("Product Added ✅");
     }
 
     // 🔄 REFRESH PRODUCTS
    const res = await fetch("https://ecommerce-backend-busm.onrender.com/api/products");
-    const data = await res.json();
-    setProducts(data);
+const data = await res.json();
+
+const fixed = data.map(p => ({
+  ...p,
+  id: p.id || p._id
+}));
+
+
+
+setProducts(fixed);
 
   } catch (err) {
     console.error(err);

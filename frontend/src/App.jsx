@@ -184,8 +184,17 @@ await fetch("https://ecommerce-backend-busm.onrender.com/api/products/add", {
 const data = await res.json();
 
 const fixed = data.map(p => ({
-  ...p,
-  id: p.id || p._id
+  id: p.id || p._id,
+  name: p.name,
+  description: p.description,
+  price: Number(p.price),
+  image: p.image,
+
+  // ✅ ADD DEFAULT VALUES
+  category: p.category || "General",
+  stock: p.stock || 10,
+  discount: p.discount || 0,
+  badge: p.badge || null
 }));
 
 
@@ -686,7 +695,9 @@ function TrackingView({ trackId, setTrackId, foundOrder, onTrack }) {
 }
 
 function UserView({ products, categoryFilter, setCategoryFilter, onToggleWishlist, onAddToCart, wishlist, onShowDetails }) {
-  const filtered = products.filter(p => categoryFilter === "All" || p.category === categoryFilter);
+  const filtered = products.filter(p =>
+  categoryFilter === "All" || (p.category && p.category === categoryFilter)
+);
 
   return (
     <div className="animate-fade-in">

@@ -225,15 +225,37 @@ export default function App() {
   })
       }).catch(err => console.log("Backend cart ignored: ", err));
 
-      setCart(prev => {
-        const existing = prev.find(item => item.id === product.id);
-        if (existing) {
-          return prev.map(item =>
-            item.id === product.id ? { ...item, quantity: item.quantity + 1 } : item
-          );
-        }
-        return [...prev, { ...product, quantity: 1 }];
-      });
+      const addToCart = async (product) => {
+  if (!user) return showToast("Please login first");
+
+  try {
+    await fetch(`${BASE_URL}/cart/add`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        user_email: user.email,
+        product_id: product.id,
+        name: product.name,
+        price: product.price,
+        image: product.image,
+        quantity: 1
+      })
+    });
+
+    // 🔥 IMPORTANT: re-fetch cart from backend
+    const res = await fetch(`${BASE_URL}/cart/${user.email}`);
+    const data = await res.json();
+
+    setCart(data);
+
+    showToast("Added to Bag");
+  } catch (err) {
+    console.error(err);
+    showToast("Error adding to cart");
+  }
+};
 
       showToast("Added to Bag");
     } catch (err) {

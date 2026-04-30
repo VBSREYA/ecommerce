@@ -213,13 +213,16 @@ export default function App() {
     try {
       // Keeping fetch structure for backend cart, adapting to new BASE_URL
       await fetch(`${BASE_URL}/cart/add`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          user_email: user.email,
-          product_id: product.id,
-          quantity: 1
-        })
+  method: "POST",
+  headers: { "Content-Type": "application/json" },
+  body: JSON.stringify({
+    user_email: user.email,
+    product_id: product.id,
+    name: product.name,
+    price: product.price,
+    image: product.image,
+    quantity: 1
+  })
       }).catch(err => console.log("Backend cart ignored: ", err));
 
       setCart(prev => {

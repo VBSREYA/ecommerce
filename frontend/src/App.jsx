@@ -398,7 +398,15 @@ export default function App() {
                   </div>
                 ) :
                 cart.map(item => (
-                  <DrawerItem key={item.id} item={item} type="cart" onRemove={() => setCart(prev => prev.filter(i => i.id !== item.id))} onUpdateQty={(amt) => {
+                  <DrawerItem key={item.id} item={item} type="cart" onRemove={async () => {
+  await fetch(`${BASE_URL}/cart/${item._id}`, {
+    method: "DELETE"
+  });
+
+  const res = await fetch(`${BASE_URL}/cart/${user.email}`);
+  const data = await res.json();
+  setCart(data);
+}} onUpdateQty={(amt) => {
                     setCart(prev => prev.map(i => i.id === item.id ? { ...i, quantity: Math.max(0, i.quantity + amt) } : i).filter(i => i.quantity > 0));
                   }} />
                 ))

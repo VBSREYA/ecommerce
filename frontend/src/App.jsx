@@ -51,7 +51,6 @@ export const API = {
 
 // --- CONSTANTS ---
 const CATEGORIES = ["All", "Stickers", "Writing", "Paper", "Gifting", "Limited Edition"];
-const ORDER_STATUSES = ["Processing", "Packed", "Shipped", "Delivered"];
 const ADMIN_PASSKEY = "TERRA2024";
 
 const Icons = {
@@ -98,7 +97,7 @@ export default function App() {
       const data = await API.getProducts();
       const fixed = Array.isArray(data) ? data.map(p => ({
         id: p._id || p.id,
-        name: p.title || p.name, // Ensure compatibility with backend field names
+        name: p.title || p.name, 
         price: Number(p.price) || 0,
         image: p.image || "https://images.unsplash.com/photo-1589209590623-1f1906969248?auto=format&fit=crop&q=80&w=800",
         description: p.description || "No description provided.",
@@ -121,7 +120,6 @@ export default function App() {
     const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
       setUser(currentUser);
       if (currentUser) {
-        // Keeping API call as requested, adapted to new base URL
         try {
           const res = await fetch(`${BASE_URL}/cart/${currentUser.email}`);
           if (res.ok) {
@@ -130,7 +128,6 @@ export default function App() {
           }
         } catch (err) {
           console.log("Cart fetch fallback to local state", err);
-          // Fails gracefully if endpoint doesn't exist yet on new backend
         }
       }
     });
@@ -174,7 +171,7 @@ export default function App() {
     const formData = new FormData(e.target);
 
     const productData = {
-      title: formData.get("name"), // Assuming backend expects 'title' instead of 'name'
+      title: formData.get("name"), 
       description: formData.get("description"),
       price: Number(formData.get("price")),
       image: formData.get("image"),
@@ -185,7 +182,6 @@ export default function App() {
 
     try {
       if (editingProduct) {
-        // Using standard PUT request to BASE URL since API object lacks updateProduct
         await fetch(`${BASE_URL}/products/${editingProduct.id}`, {
           method: "PUT",
           headers: { "Content-Type": "application/json" },
@@ -197,7 +193,7 @@ export default function App() {
         showToast("Product Added ✅");
       }
       
-      await fetchProducts(); // Refresh
+      await fetchProducts(); 
     } catch (err) {
       console.error(err);
       showToast("Error saving product ❌");
@@ -211,51 +207,25 @@ export default function App() {
     if (!user) return showToast("Please login first");
 
     try {
-      // Keeping fetch structure for backend cart, adapting to new BASE_URL
       await fetch(`${BASE_URL}/cart/add`, {
-  method: "POST",
-  headers: { "Content-Type": "application/json" },
-  body: JSON.stringify({
-    user_email: user.email,
-    product_id: product.id,
-    name: product.name,
-    price: product.price,
-    image: product.image,
-    quantity: 1
-  })
-      }).catch(err => console.log("Backend cart ignored: ", err));
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          user_email: user.email,
+          product_id: product.id,
+          name: product.name,
+          price: product.price,
+          image: product.image,
+          quantity: 1
+        })
+      });
 
-      const addToCart = async (product) => {
-  if (!user) return showToast("Please login first");
-
-  try {
-    await fetch(`${BASE_URL}/cart/add`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify({
-        user_email: user.email,
-        product_id: product.id,
-        name: product.name,
-        price: product.price,
-        image: product.image,
-        quantity: 1
-      })
-    });
-
-    // 🔥 IMPORTANT: re-fetch cart from backend
-    const res = await fetch(`${BASE_URL}/cart/${user.email}`);
-    const data = await res.json();
-
-    setCart(data);
-
-    showToast("Added to Bag");
-  } catch (err) {
-    console.error(err);
-    showToast("Error adding to cart");
-  }
-};
+      // 🔥 IMPORTANT: re-fetch cart from backend
+      const res = await fetch(`${BASE_URL}/cart/${user.email}`);
+      if (res.ok) {
+        const data = await res.json();
+        setCart(Array.isArray(data) ? data : []);
+      }
 
       showToast("Added to Bag");
     } catch (err) {
@@ -271,7 +241,7 @@ export default function App() {
     deliveryDate.setDate(today.getDate() + 10);
     
     const newOrder = {
-      orderId: orderId,
+      orderNumber: orderId, // Match schema expectation in backend
       user_email: user?.email || "guest",
       items: cart,
       total: cartTotal,
@@ -283,7 +253,6 @@ export default function App() {
     };
     
     try {
-      // Push order to new API
       await API.addOrder(newOrder);
 
       setProducts(prev => prev.map(p => {
@@ -321,7 +290,7 @@ export default function App() {
     try {
       const ordersData = await API.getOrders();
       const validOrders = Array.isArray(ordersData) ? ordersData : orders;
-      const order = validOrders.find(o => (o.orderId || o.id).toUpperCase() === trackId.toUpperCase());
+      const order = validOrders.find(o => (o.orderNumber || o.orderId || o._id).toUpperCase() === trackId.toUpperCase());
       
       if (order) {
         setFoundOrder(order);
@@ -398,16 +367,15 @@ export default function App() {
                   </div>
                 ) :
                 cart.map(item => (
-                  <DrawerItem key={item.id} item={item} type="cart" onRemove={async () => {
-  await fetch(`${BASE_URL}/cart/${item._id}`, {
-    method: "DELETE"
-  });
-
-  const res = await fetch(`${BASE_URL}/cart/${user.email}`);
-  const data = await res.json();
-  setCart(data);
-}} onUpdateQty={(amt) => {
-                    setCart(prev => prev.map(i => i.id === item.id ? { ...i, quantity: Math.max(0, i.quantity + amt) } : i).filter(i => i.quantity > 0));
+                  <DrawerItem key={item._id || item.id} item={item} type="cart" onRemove={async () => {
+                    await fetch(`${BASE_URL}/cart/${item._id || item.id}`, { method: "DELETE" });
+                    const res = await fetch(`${BASE_URL}/cart/${user.email}`);
+                    if(res.ok) {
+                      const data = await res.json();
+                      setCart(Array.isArray(data) ? data : []);
+                    }
+                  }} onUpdateQty={(amt) => {
+                    setCart(prev => prev.map(i => (i.id || i._id) === (item.id || item._id) ? { ...i, quantity: Math.max(0, i.quantity + amt) } : i).filter(i => i.quantity > 0));
                   }} />
                 ))
               ) : (
@@ -579,7 +547,7 @@ function NavButton({ icon, count, onClick }) {
     <button onClick={onClick} className="relative p-3 bg-white border border-gray-100 rounded-2xl hover:shadow-md transition-all group">
       <div className="group-hover:scale-110 transition-transform">{icon}</div>
       {count > 0 && (
-        <span className="absolute -top-1 -right-1 w-5 h-5 bg-[#D4A373] text-white text-[10px] font-bold rounded-full flex items-center justify-center border-2 border-white">
+        <span className="absolute -top-1 -right-1 w-5 h-5 bg-[#D4A373] text-white text-[10px] font-bold rounded-full flex items-center justify-center">
           {count}
         </span>
       )}
@@ -587,100 +555,14 @@ function NavButton({ icon, count, onClick }) {
   );
 }
 
-function FormField({ label, name, type = "text", defaultValue }) {
-  return (
-    <div className="space-y-2">
-      <label className="text-[9px] font-black uppercase tracking-widest text-gray-400">{label}</label>
-      <input required name={name} type={type} defaultValue={defaultValue} className="w-full p-4 bg-gray-50 border border-gray-100 rounded-2xl outline-none focus:ring-1 ring-[#D4A373]/30" />
-    </div>
-  );
-}
-
-function AdminLogin({ onLogin, adminPasskey }) {
-  return (
-    <div className="min-h-[50vh] flex items-center justify-center animate-fade-in px-4">
-      <div className="bg-white p-12 md:p-16 rounded-[4rem] border border-gray-100 shadow-xl max-w-md w-full text-center">
-        <div className="flex justify-center"><Icons.Lock /></div>
-        <h2 className="text-4xl font-serif italic mb-4">Restricted Access</h2>
-        <p className="text-gray-400 text-sm mb-2 leading-relaxed">Admin management portal.</p>
-        <p className="text-[10px] font-black text-[#D4A373] uppercase tracking-widest mb-10 bg-[#D4A373]/10 py-2 rounded-full inline-block px-6 border border-[#D4A373]/20">
-          Passkey: {adminPasskey}
-        </p>
-        <form onSubmit={onLogin} className="space-y-4">
-          <input autoFocus type="password" name="passkey" placeholder="Enter Passkey" className="w-full p-5 bg-gray-50 border border-gray-100 rounded-[2rem] outline-none text-center focus:border-[#D4A373] transition-all tracking-widest" />
-          <button className="w-full bg-[#2D2A26] text-white py-5 rounded-[2rem] font-bold text-xs uppercase tracking-widest hover:bg-black transition-all">Authorize Access</button>
-        </form>
-      </div>
-    </div>
-  );
-}
-
-function TrackingView({ trackId, setTrackId, foundOrder, onTrack }) {
-  return (
-    <div className="max-w-3xl mx-auto animate-fade-in min-h-[60vh]">
-      <div className="text-center mb-16">
-        <h2 className="text-6xl font-serif italic mb-6 text-[#2D2A26]">Concierge Tracking</h2>
-        <p className="text-gray-400 font-light text-lg">Follow the journey of your curated pieces.</p>
-      </div>
-
-      <div className="bg-white p-10 rounded-[3rem] border border-gray-100 shadow-sm mb-12">
-        <form onSubmit={onTrack} className="flex flex-col sm:flex-row gap-4">
-          <input 
-            value={trackId}
-            onChange={(e) => setTrackId(e.target.value)}
-            placeholder="Order ID (TER-XXXXXX)" 
-            className="flex-1 bg-gray-50 border border-gray-100 p-5 rounded-2xl outline-none focus:ring-1 ring-[#D4A373]/30 tracking-widest font-mono text-center uppercase"
-          />
-          <button className="bg-[#2D2A26] text-white px-10 py-5 rounded-2xl font-black text-[10px] uppercase tracking-widest shadow-xl hover:bg-black transition-all">Locate Shipment</button>
-        </form>
-      </div>
-
-      {foundOrder && (
-        <div className="animate-fade-in space-y-12">
-          <div className="bg-[#D4A373] text-white p-8 rounded-[2rem] shadow-xl shadow-[#D4A373]/20 flex flex-col sm:flex-row justify-between items-center gap-6">
-            <div className="flex items-center gap-4">
-              <div className="p-3 bg-white/20 rounded-xl"><Icons.Calendar /></div>
-              <div>
-                <p className="text-[10px] font-black uppercase tracking-[0.2em] opacity-80">Guaranteed Arrival</p>
-                <p className="text-2xl font-serif">{foundOrder.deliveryDate}</p>
-              </div>
-            </div>
-            <div className="px-6 py-2 bg-white/20 rounded-full text-xs font-black uppercase tracking-widest border border-white/30">
-              Status: {foundOrder.status}
-            </div>
-          </div>
-          
-          <div className="bg-white p-10 rounded-[3rem] border border-gray-100 shadow-sm">
-            <h3 className="text-2xl font-serif italic mb-6">Order Contents</h3>
-            <div className="space-y-4">
-              {foundOrder.items?.map((item, idx) => (
-                <div key={idx} className="flex justify-between items-center py-4 border-b border-gray-50 last:border-0">
-                  <div className="flex items-center gap-4">
-                    <img src={item.image} className="w-12 h-12 rounded-lg object-cover" alt={item.name} />
-                    <div>
-                      <p className="font-bold text-sm">{item.name}</p>
-                      <p className="text-xs text-gray-400">Qty: {item.quantity}</p>
-                    </div>
-                  </div>
-                  <p className="font-bold">₹{item.price * item.quantity}</p>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-      )}
-    </div>
-  );
-}
-
 function UserView({ products, categoryFilter, setCategoryFilter, onToggleWishlist, onAddToCart, wishlist, onShowDetails }) {
   const filtered = categoryFilter === "All" ? products : products.filter(p => p.category === categoryFilter);
-  
+
   return (
     <div className="animate-fade-in">
-      <div className="flex gap-4 overflow-x-auto pb-4 mb-8 custom-scrollbar">
+      <div className="flex gap-4 mb-8 overflow-x-auto pb-4 custom-scrollbar">
         {CATEGORIES.map(c => (
-          <button key={c} onClick={() => setCategoryFilter(c)} className={`px-6 py-3 rounded-2xl whitespace-nowrap text-[10px] font-black uppercase tracking-widest transition-all ${categoryFilter === c ? 'bg-[#2D2A26] text-white shadow-lg' : 'bg-white border border-gray-100 text-gray-400 hover:bg-gray-50'}`}>
+          <button key={c} onClick={() => setCategoryFilter(c)} className={`px-6 py-2 rounded-full text-xs font-bold uppercase tracking-widest whitespace-nowrap transition-all ${categoryFilter === c ? 'bg-[#D4A373] text-white' : 'bg-gray-100 text-gray-400 hover:bg-gray-200'}`}>
             {c}
           </button>
         ))}
@@ -688,27 +570,16 @@ function UserView({ products, categoryFilter, setCategoryFilter, onToggleWishlis
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8">
         {filtered.map(p => (
           <div key={p.id} className="group cursor-pointer" onClick={() => onShowDetails(p)}>
-            <div className="relative aspect-square overflow-hidden rounded-[2rem] bg-gray-50 mb-4">
-              <img src={p.image} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700" alt={p.name} />
-              {p.badge && <span className="absolute top-4 left-4 px-3 py-1 bg-white/90 backdrop-blur-sm text-[#D4A373] text-[8px] font-black uppercase tracking-widest rounded-full">{p.badge}</span>}
-              <button 
-                onClick={(e) => { e.stopPropagation(); onToggleWishlist(p); }} 
-                className="absolute top-4 right-4 p-3 bg-white/90 backdrop-blur-sm rounded-full opacity-0 group-hover:opacity-100 transition-opacity hover:scale-110"
-              >
-                <Icons.Heart filled={wishlist.some(w => w.id === p.id)} />
-              </button>
+            <div className="relative aspect-square rounded-3xl overflow-hidden bg-gray-50 mb-4">
+              <img src={p.image} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" alt={p.name} />
+              {p.badge && <span className="absolute top-4 left-4 bg-[#D4A373] text-white text-[9px] font-black uppercase tracking-widest px-3 py-1 rounded-full">{p.badge}</span>}
             </div>
-            <div>
-              <h3 className="font-serif text-lg mb-1">{p.name}</h3>
-              <div className="flex justify-between items-center">
-                <span className="text-[#D4A373] font-bold">₹{p.discount > 0 ? Math.round(p.price * (1 - p.discount / 100)) : p.price}</span>
-                <button 
-                  onClick={(e) => { e.stopPropagation(); onAddToCart(p); }} 
-                  className="text-[9px] font-black uppercase tracking-widest hover:text-[#D4A373] transition-colors"
-                >
-                  + Add
-                </button>
+            <div className="flex justify-between items-start">
+              <div>
+                <h3 className="font-serif text-xl mb-1">{p.name}</h3>
+                <p className="text-gray-400 text-sm font-light">{p.category}</p>
               </div>
+              <span className="font-bold">₹{p.price}</span>
             </div>
           </div>
         ))}
@@ -717,136 +588,102 @@ function UserView({ products, categoryFilter, setCategoryFilter, onToggleWishlis
   );
 }
 
-function DrawerItem({ item, type, onRemove, onUpdateQty, onMoveToCart }) {
+function TrackingView({ trackId, setTrackId, foundOrder, onTrack }) {
   return (
-    <div className="flex gap-4 items-center bg-gray-50/50 border border-gray-100 p-4 rounded-3xl">
-      <img src={item.image} className="w-20 h-20 object-cover rounded-2xl" alt={item.name} />
-      <div className="flex-1">
-        <h4 className="text-sm font-bold text-[#2D2A26] mb-1 leading-tight">{item.name}</h4>
-        <p className="text-[#D4A373] text-xs font-bold mb-3">₹{item.price}</p>
-        {type === 'cart' && (
-          <div className="flex items-center gap-3">
-            <button onClick={() => onUpdateQty(-1)} className="p-1.5 bg-white border border-gray-100 rounded-lg shadow-sm hover:bg-gray-50"><Icons.Minus /></button>
-            <span className="text-xs font-bold w-4 text-center">{item.quantity}</span>
-            <button onClick={() => onUpdateQty(1)} className="p-1.5 bg-white border border-gray-100 rounded-lg shadow-sm hover:bg-gray-50"><Icons.Plus /></button>
+    <div className="max-w-md mx-auto py-20 text-center animate-fade-in">
+      <h2 className="text-4xl font-serif italic mb-6">Track Your Package</h2>
+      <form onSubmit={onTrack} className="flex gap-2 mb-10">
+        <input value={trackId} onChange={e => setTrackId(e.target.value)} placeholder="Enter Order ID" className="flex-1 p-4 bg-gray-50 border border-gray-100 rounded-2xl outline-none" required />
+        <button type="submit" className="bg-[#2D2A26] text-white px-8 rounded-2xl font-bold">Track</button>
+      </form>
+      {foundOrder && (
+        <div className="bg-white p-8 rounded-3xl shadow-xl text-left border border-gray-50 animate-fade-in-up">
+          <div className="flex justify-between items-center mb-6 pb-6 border-b border-gray-50">
+            <span className="text-gray-400 font-bold uppercase tracking-widest text-[10px]">Status</span>
+            <span className="text-[#D4A373] font-black uppercase tracking-widest text-xs">{foundOrder.status}</span>
           </div>
-        )}
-      </div>
-      <div className="flex flex-col gap-2">
-        <button onClick={onRemove} className="p-3 bg-white border border-gray-100 rounded-xl text-gray-400 hover:text-red-500 hover:border-red-100 transition-all shadow-sm"><Icons.Trash /></button>
-        {type === 'wishlist' && (
-          <button onClick={onMoveToCart} className="p-3 bg-[#D4A373] rounded-xl text-white hover:bg-[#b0845a] transition-all shadow-sm shadow-[#D4A373]/20"><Icons.Cart /></button>
-        )}
-      </div>
+          <div className="space-y-4">
+             <p className="flex justify-between"><span className="text-gray-400">Order ID</span> <span className="font-bold">{foundOrder.orderNumber || foundOrder.orderId}</span></p>
+             <p className="flex justify-between"><span className="text-gray-400">Total</span> <span className="font-bold">₹{foundOrder.total}</span></p>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function AdminLogin({ onLogin, adminPasskey }) {
+  return (
+    <div className="max-w-sm mx-auto py-20 animate-fade-in">
+      <h2 className="text-4xl font-serif italic mb-8 text-center">Admin Access</h2>
+      <form onSubmit={onLogin} className="space-y-4">
+        <input type="password" name="passkey" placeholder="Enter Passkey" className="w-full p-4 bg-gray-50 border border-gray-100 rounded-2xl outline-none" required />
+        <button type="submit" className="w-full bg-[#2D2A26] text-white py-4 rounded-2xl font-bold hover:bg-black transition-colors">Authenticate</button>
+      </form>
     </div>
   );
 }
 
 function AdminDashboard({ products, setProducts, orders, setOrders, onAdd, onEdit, onLogout }) {
-  const [tab, setTab] = useState("products");
-
-  useEffect(() => {
-    if (tab === "orders") {
-      API.getOrders().then(data => {
-        setOrders(Array.isArray(data) ? data : []);
-      }).catch(console.error);
-    }
-  }, [tab]);
-
-  const handleDelete = async (id) => {
-    try {
-      await API.deleteProduct(id);
-      setProducts(products.filter(p => p.id !== id));
-    } catch (err) {
-      console.error(err);
-    }
-  };
-
-  const handleUpdateOrderStatus = async (id, status) => {
-    try {
-      await API.updateOrder(id, { status });
-      setOrders(orders.map(o => o.id === id || o._id === id ? { ...o, status } : o));
-    } catch(err) {
-      console.error(err);
-    }
-  };
-
   return (
-    <div className="animate-fade-in">
-      <div className="flex justify-between items-center mb-10">
-        <h2 className="text-4xl font-serif italic text-[#2D2A26]">Administration</h2>
-        <button onClick={onLogout} className="text-[10px] font-black uppercase tracking-widest text-red-500 hover:underline">Revoke Access</button>
+    <div className="animate-fade-in space-y-12">
+       <div className="flex justify-between items-center">
+          <h2 className="text-4xl font-serif italic">Boutique Command</h2>
+          <div className="flex gap-4">
+             <button onClick={onAdd} className="bg-[#D4A373] text-white px-6 py-3 rounded-2xl font-bold text-sm hover:bg-[#b0875b]">Add Artifact</button>
+             <button onClick={onLogout} className="border border-gray-200 px-6 py-3 rounded-2xl font-bold text-sm hover:bg-gray-50">Exit</button>
+          </div>
+       </div>
+       
+       <div className="bg-white p-8 rounded-3xl border border-gray-100">
+         <h3 className="text-xl font-bold mb-6">Product Catalog</h3>
+         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
+           {products.map(p => (
+             <div key={p.id} className="p-4 border border-gray-100 rounded-xl relative group">
+               <img src={p.image} alt={p.name} className="w-full h-32 object-cover rounded-lg mb-2" />
+               <p className="font-bold text-sm truncate">{p.name}</p>
+               <p className="text-xs text-gray-500">₹{p.price}</p>
+               <button onClick={() => onEdit(p)} className="absolute top-2 right-2 p-2 bg-white rounded-full shadow hover:bg-gray-100"><Icons.Edit /></button>
+             </div>
+           ))}
+         </div>
+       </div>
+    </div>
+  );
+}
+
+function DrawerItem({ item, type, onRemove, onUpdateQty, onMoveToCart }) {
+  return (
+    <div className="flex gap-4 bg-white p-4 rounded-2xl border border-gray-50 shadow-sm relative group">
+      <img src={item.image} className="w-20 h-20 object-cover rounded-xl" alt={item.name} />
+      <div className="flex-1 pr-6">
+        <h4 className="font-serif text-lg leading-tight mb-1">{item.name}</h4>
+        <p className="text-[#D4A373] font-bold text-sm">₹{item.price}</p>
+        
+        {type === 'cart' && (
+          <div className="flex items-center gap-3 mt-3 bg-gray-50 w-fit rounded-lg px-2 py-1">
+            <button onClick={() => onUpdateQty(-1)} className="p-1 text-gray-400 hover:text-black"><Icons.Minus /></button>
+            <span className="text-xs font-bold w-4 text-center">{item.quantity}</span>
+            <button onClick={() => onUpdateQty(1)} className="p-1 text-gray-400 hover:text-black"><Icons.Plus /></button>
+          </div>
+        )}
+        
+        {type === 'wishlist' && (
+           <button onClick={onMoveToCart} className="mt-3 text-[10px] font-black uppercase tracking-widest text-[#D4A373] hover:text-[#b0875b]">Move to Bag</button>
+        )}
       </div>
+      <button onClick={onRemove} className="absolute top-4 right-4 text-gray-300 hover:text-red-500 transition-colors">
+        <Icons.Trash />
+      </button>
+    </div>
+  );
+}
 
-      <div className="flex gap-4 mb-8">
-        <button onClick={() => setTab("products")} className={`px-8 py-4 rounded-[2rem] text-[10px] font-black uppercase tracking-widest transition-all ${tab === 'products' ? 'bg-[#2D2A26] text-white shadow-xl' : 'bg-white border border-gray-100 text-gray-400'}`}>Inventory</button>
-        <button onClick={() => setTab("orders")} className={`px-8 py-4 rounded-[2rem] text-[10px] font-black uppercase tracking-widest transition-all ${tab === 'orders' ? 'bg-[#2D2A26] text-white shadow-xl' : 'bg-white border border-gray-100 text-gray-400'}`}>Orders</button>
-      </div>
-
-      {tab === "products" && (
-        <div className="bg-white rounded-[3rem] border border-gray-100 shadow-sm p-8">
-          <div className="flex justify-between items-center mb-8">
-            <h3 className="text-2xl font-serif italic">Vault Contents</h3>
-            <button onClick={onAdd} className="bg-[#D4A373] text-white px-6 py-3 rounded-2xl text-[10px] font-black uppercase tracking-widest flex items-center gap-2 hover:bg-[#b0845a] transition-colors"><Icons.Plus /> New Piece</button>
-          </div>
-          <div className="overflow-x-auto">
-            <table className="w-full text-left border-collapse">
-              <thead>
-                <tr className="text-[9px] font-black uppercase tracking-widest text-gray-400 border-b border-gray-50">
-                  <th className="p-4">Piece</th>
-                  <th className="p-4">Collection</th>
-                  <th className="p-4">Valuation</th>
-                  <th className="p-4">Stock</th>
-                  <th className="p-4 text-right">Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {products.map(p => (
-                  <tr key={p.id} className="border-b border-gray-50 hover:bg-gray-50/50 transition-colors">
-                    <td className="p-4 flex items-center gap-4">
-                      <img src={p.image} className="w-10 h-10 rounded-lg object-cover" alt={p.name} />
-                      <span className="font-bold text-sm">{p.name}</span>
-                    </td>
-                    <td className="p-4 text-sm text-gray-500">{p.category}</td>
-                    <td className="p-4 text-sm font-bold text-[#D4A373]">₹{p.price}</td>
-                    <td className="p-4 text-sm"><span className={`px-3 py-1 rounded-full text-[10px] font-bold ${p.stock < 5 ? 'bg-red-50 text-red-500' : 'bg-green-50 text-green-500'}`}>{p.stock}</span></td>
-                    <td className="p-4 flex justify-end gap-2">
-                      <button onClick={() => onEdit(p)} className="p-2 bg-white border border-gray-100 rounded-lg text-gray-400 hover:text-blue-500"><Icons.Edit /></button>
-                      <button onClick={() => handleDelete(p.id)} className="p-2 bg-white border border-gray-100 rounded-lg text-gray-400 hover:text-red-500"><Icons.Trash /></button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
-      )}
-
-      {tab === "orders" && (
-        <div className="bg-white rounded-[3rem] border border-gray-100 shadow-sm p-8">
-          <h3 className="text-2xl font-serif italic mb-8">Active Shipments</h3>
-          <div className="space-y-4">
-            {orders.length === 0 ? <p className="text-gray-400 italic">No orders found.</p> : orders.map(o => (
-              <div key={o.id || o._id || o.orderId} className="border border-gray-100 rounded-[2rem] p-6 flex flex-col md:flex-row justify-between items-center gap-6 hover:shadow-md transition-shadow">
-                <div>
-                  <p className="text-[10px] font-black uppercase tracking-widest text-gray-400 mb-1">{o.orderId || o.id || o._id}</p>
-                  <p className="font-serif text-lg">{o.date}</p>
-                  <p className="text-sm text-gray-500">{o.items?.length || 0} items • ₹{o.total}</p>
-                </div>
-                <div className="flex items-center gap-4">
-                  <select 
-                    value={o.status} 
-                    onChange={(e) => handleUpdateOrderStatus(o.id || o._id, e.target.value)}
-                    className="p-3 bg-gray-50 border border-gray-100 rounded-xl outline-none text-xs font-bold text-[#D4A373] uppercase tracking-widest"
-                  >
-                    {ORDER_STATUSES.map(s => <option key={s} value={s}>{s}</option>)}
-                  </select>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
+function FormField({ label, name, type = "text", defaultValue }) {
+  return (
+    <div className="space-y-2">
+       <label className="text-[9px] font-black uppercase tracking-widest text-gray-400">{label}</label>
+       <input type={type} name={name} defaultValue={defaultValue} className="w-full p-4 bg-gray-50 border border-gray-100 rounded-2xl outline-none focus:ring-1 ring-[#D4A373]/30" required />
     </div>
   );
 }

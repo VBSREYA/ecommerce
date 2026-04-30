@@ -1,32 +1,51 @@
-const BASE_URL = "https://ecommerce-backend-busm.onrender.com/api";
+const BASE_URL = "https://ecommercebackend-4c8o.onrender.com";
 
 export const API = {
-  getProducts: () =>
-    fetch(`${BASE_URL}/products`)
-      .then(res => res.json())
-      .catch(err => {
-        console.error("Get Products Error:", err);
-      }),
+  // PRODUCTS
+  getProducts: async () => {
+    const res = await fetch(`${BASE_URL}/products`);
+    return res.json();
+  },
 
-  addProduct: (data) =>
-    fetch(`${BASE_URL}/products/add`, {
+  addProduct: async (data) => {
+    return fetch(`${BASE_URL}/products`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(data)
-    })
-      .then(res => res.json())
-      .catch(err => {
-        console.error("Add Product Error:", err);
-      }),
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(data),
+    });
+  },
 
-  updateProduct: (id, data) =>
-    fetch(`${BASE_URL}/products/update/${id}`, {
+  deleteProduct: async (id) => {
+    return fetch(`${BASE_URL}/products/${id}`, {
+      method: "DELETE",
+    });
+  },
+
+  // ORDERS
+  getOrders: async () => {
+    const res = await fetch(`${BASE_URL}/orders`);
+    return res.json();
+  },
+
+  addOrder: async (data) => {
+    return fetch(`${BASE_URL}/orders`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(data),
+    });
+  },
+
+  updateOrder: async (id, data) => {
+    return fetch(`${BASE_URL}/orders/${id}`, {
       method: "PUT",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(data)
-    })
-      .then(res => res.json())
-      .catch(err => {
-        console.error("Update Product Error:", err);
-      })
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(data),
+    });
+  }
 };

@@ -617,7 +617,7 @@ function AdminLogin({ onLogin, adminPasskey }) {
     <div className="max-w-sm mx-auto py-20 animate-fade-in">
       <h2 className="text-4xl font-serif italic mb-8 text-center">Admin Access</h2>
       <form onSubmit={onLogin} className="space-y-4">
-        <input type="password" name="passkey" placeholder="Enter Passkey" className="w-full p-4 bg-gray-50 border border-gray-100 rounded-2xl outline-none" required />
+        <input type="password" name="passkey" placeholder="Enter Passkey TERRA2024" className="w-full p-4 bg-gray-50 border border-gray-100 rounded-2xl outline-none" required />
         <button type="submit" className="w-full bg-[#2D2A26] text-white py-4 rounded-2xl font-bold hover:bg-black transition-colors">Authenticate</button>
       </form>
     </div>
